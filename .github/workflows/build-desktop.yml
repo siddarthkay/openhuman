@@ -382,10 +382,19 @@ jobs:
             "${{ steps.core-paths.outputs.sidecar_base }}"
 
       # ---- Tauri build -------------------------------------------------------
+      # TEMP (bladerunner-infra branch): the registry pin `tinysearch 0.2.1`
+      # has no windows-2022-x86_64 asset, so stage-windows-modules.mjs
+      # fails before the build starts. Ship an empty resource dir instead
+      # (tauri.conf.json lists it under bundle.resources) so the rest of
+      # the Windows pipeline can be exercised end to end on the new
+      # bladerunner-windows pool. Restore the real step once the asset
+      # exists.
       - name: Bundle pinned Windows native modules
         if: matrix.settings.platform == 'windows-latest'
         shell: bash
-        run: node scripts/release/stage-windows-modules.mjs
+        run: |
+          mkdir -p crates/openhuman-app/bundled-modules
+          echo "no modules staged (bladerunner-infra test build)" > crates/openhuman-app/bundled-modules/README.txt
 
       # Vite is invoked via tauri.conf.json's beforeBuildCommand inside
       # `cargo tauri build`, so all VITE_* env must be present here for the
