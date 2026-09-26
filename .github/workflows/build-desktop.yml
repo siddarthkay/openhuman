@@ -97,7 +97,13 @@ on:
 jobs:
   build:
     name: "Desktop: ${{ matrix.settings.artifact_suffix }}"
-    runs-on: ${{ matrix.settings.platform }}
+    # `runner` is the runs-on label; `platform` stays the GitHub-hosted image
+    # name so the OS conditionals below (`== 'macos-latest'`,
+    # `startsWith(..., 'ubuntu-')`, `== 'windows-latest'`) and the artifact
+    # names keep working unchanged. The bladerunner-* labels are the
+    # self-hosted fleet; to fall back to GitHub-hosted runners, set `runner`
+    # equal to `platform` again.
+    runs-on: ${{ matrix.settings.runner }}
     # 120, not 90: the macOS legs were clipped at exactly 90m in every failing
     # run (#5595), so their true duration was never observed. The codegen-units
     # fix should bring these back to ~45-50 min; the extra headroom means a slow
@@ -109,22 +115,27 @@ jobs:
       matrix:
         settings:
           - platform: macos-latest
+            runner: bladerunner-macos
             args: --target aarch64-apple-darwin
             target: aarch64-apple-darwin
             artifact_suffix: aarch64-apple-darwin
           - platform: macos-latest
+            runner: bladerunner-macos
             args: --target x86_64-apple-darwin
             target: x86_64-apple-darwin
             artifact_suffix: x86_64-apple-darwin
           - platform: ubuntu-24.04
+            runner: bladerunner-linux
             args: --target x86_64-unknown-linux-gnu --bundles deb appimage
             target: x86_64-unknown-linux-gnu
             artifact_suffix: ubuntu
           - platform: ubuntu-24.04-arm
+            runner: ubuntu-24.04-arm
             args: --target aarch64-unknown-linux-gnu --bundles deb appimage
             target: aarch64-unknown-linux-gnu
             artifact_suffix: ubuntu-arm64
           - platform: windows-latest
+            runner: bladerunner-windows
             args: --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
             artifact_suffix: windows

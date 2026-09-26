@@ -1,0 +1,67 @@
+---
+# Manual entry point for timing the desktop build matrix on the bladerunner
+# self-hosted fleet. Runs only the `build-desktop.yml` job for the dispatched
+# ref: no version bump, no tag, no Docker build, no Sentry deploy record.
+# Signing, updater `.sig` generation and GH Release uploads are all off so
+# the run needs no repo secrets; bundles land as Actions artifacts.
+name: Bladerunner Build (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      build_profile:
+        description: Cargo profile to build (release | debug).
+        required: false
+        type: choice
+        options: [release, debug]
+        default: release
+permissions:
+  actions: read
+  contents: read
+  packages: read
+concurrency:
+  group: bladerunner-build-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  resolve:
+    name: Resolve build inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      sha: ${{ steps.resolve.outputs.sha }}
+      short_sha: ${{ steps.resolve.outputs.short_sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - name: Resolve version and SHA
+        id: resolve
+        shell: bash
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          VERSION="$(node -p "require('./app/package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHA:0:12}" >> "$GITHUB_OUTPUT"
+
+  build-desktop:
+    name: Build desktop matrix
+    needs: [resolve]
+    uses: ./.github/workflows/build-desktop.yml
+    secrets: inherit
+    with:
+      build_ref: ${{ needs.resolve.outputs.sha }}
+      tag: v${{ needs.resolve.outputs.version }}-bladerunner
+      version: ${{ needs.resolve.outputs.version }}
+      sha: ${{ needs.resolve.outputs.sha }}
+      short_sha: ${{ needs.resolve.outputs.short_sha }}
+      base_url: https://staging-api.tinyhumans.ai/
+      app_env: staging
+      build_profile: ${{ inputs.build_profile }}
+      telegram_bot_username: alphahumantest_bot
+      with_macos_signing: false
+      with_release_upload: false
+      with_updater: false
+      build_sidecar: false
