@@ -450,6 +450,9 @@ jobs:
           TAURI_CONFIG_OVERRIDE: ${{ steps.config-overrides.outputs.json }}
           MATRIX_ARGS: ${{ matrix.settings.args }}
           PROFILE_FLAG: ${{ inputs.build_profile == 'debug' && '--debug' || '' }}
+          # we ship no AppStream file and the release validator checks the
+          # desktop entry itself.
+          LDAI_NO_APPSTREAM: "1"
         run: |
           # Inline NODE_OPTIONS so it reaches the vite child spawned by
           # beforeBuildCommand. Step-level env was observed not to propagate
