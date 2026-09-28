@@ -460,6 +460,17 @@ jobs:
           #
           NODE_OPTIONS="--max-old-space-size=8192" bash ../scripts/ci-cancel-aware.sh pnpm tauri build $PROFILE_FLAG -c "$TAURI_CONFIG_OVERRIDE" $MATRIX_ARGS
 
+      - name: Build cache stats (bladerunner runners)
+        if: always() && startsWith(matrix.settings.runner, 'bladerunner-')
+        shell: bash
+        run: |
+          echo "CARGO_HOME=${CARGO_HOME:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}  SCCACHE_DIR=${SCCACHE_DIR:-<unset>}"
+          if command -v sccache >/dev/null 2>&1 && [ -n "${RUSTC_WRAPPER:-}" ]; then
+            sccache --show-stats || echo "sccache stats unavailable"
+          else
+            echo "sccache not active on this runner"
+          fi
+
       # Diagnostic for the recurring quick-sharun "is missing libraries!
       # Aborting..." error on the AppImage bundler — the upstream script
       # only prints a generic banner and swallows lib4bin's actual output,
